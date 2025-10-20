@@ -13,7 +13,8 @@ After setup, you can start the default frontend. Start it executing frontend/cha
 ### Custom Frondends
 Feel free to customize the frontend using the configuration pane in the backend or develop your own frontend and attach it to the provided API using the /sresponse (stream response) endpoint:
 
-```curl --location '/sresponse' \
+```bash
+curl --location '/sresponse' \
 --header 'Content-Type: application/x-www-form-urlencoded' \
 --data-urlencode 'history=[{"role":"user","message":"Your question here"}]'
 ```
