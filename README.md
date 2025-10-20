@@ -15,7 +15,8 @@ Feel free to customize the frontend using the configuration pane in the backend 
 
 ```curl --location '/sresponse' \
 --header 'Content-Type: application/x-www-form-urlencoded' \
---data-urlencode 'history=[{"role":"user","message":"Your question here"}]'```
+--data-urlencode 'history=[{"role":"user","message":"Your question here"}]'
+```
 
 The request opens a stream to receive the chat response.
 
