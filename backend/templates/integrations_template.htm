@@ -1,0 +1,14 @@
+{% extends 'template.htm' %}
+
+{% block h1_title %}Integration{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" action="/upload_dataset/">
+  <label><p>Wählen Sie den Datensatz (*.xls, *.xlsx, *.csv oder *.json) von Ihrem Rechner aus.</p>
+    <input name="file" type="file" size="50" accept=".csv,.xls,.xlsx,.json"> 
+  </label>  
+  <p>
+  <button>Hochladen und verarbeiten</button>
+  </p>
+</form>
+{% endblock %}

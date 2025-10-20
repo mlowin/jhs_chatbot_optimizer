@@ -1,0 +1,12 @@
+{% extends 'template.htm' %}
+
+{% block h1_title %}Dashboard{% endblock %}
+
+{% block content %}<h3>Welcome!</h3>
+<table class="table">
+    <tr><th>Products</th><td>{{products}}</td></tr>
+    <tr><th>Active Chat Messages</th><td>{{chats}}</td></tr>
+    <tr><th>Individual Category Filters</th><td>{{filters}}</td></tr>
+    <tr><th>Connected LLMs</th><td>{{llms}}</td></tr>
+</table>
+{% endblock %}

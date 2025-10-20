@@ -1,0 +1,56 @@
+{% extends 'template.htm' %}
+
+{% block h1_title %}Integrations{% endblock %}
+
+{% block content %}
+
+<div class="table-responsive">
+  <form method="post" action="/integrations_filters/">
+    <input type="hidden" name="filename" />
+    <h2>File <i id="file"></i></h2>
+    <i id="entries"></i> Entries
+    <table class="table table-striped table-sm" id="table-dataset">
+        <thead>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+  <input type="submit" class="btn btn-primary" value="Speichern und weiter" />  
+  </form>
+</div>      
+ 
+{% endblock %}
+
+{% block javascript %}
+<script type="text/javascript">
+    var dataset = {{dataset | safe}};
+
+  
+    function create_select(name, options, val){
+      let html = '<select name="'+name+'">';
+      for(let k in options){
+        html += '<option'+(options[k] == val ? ' selected' : '')+'>'+options[k]+'</option>';
+      }
+      return html + '</select>';
+    }
+    function redraw_table(){
+      $('[name="filename"]').val(dataset['filename']);
+      $('#file').html(dataset['filename']);
+      $('#entries').html(dataset['entries']);
+      $('#table-dataset tbody').html('');
+      for(let i in dataset['struct']){
+        let col = dataset['struct'][i];
+        let tr_html = '<tr><th>'+i+'<input type="hidden" name="name[]" value="'+i+'" /></th>';        
+        tr_html += '<td>'+create_select("type[]",["text", "numeric", "bool", "array"],col['type'])+'</td>';
+        tr_html += '<td>'+create_select("column[]",["id","title","description","filter","no-filter"],col['column'])+'</td></tr>';
+      $('#table-dataset tbody').append(tr_html);
+      }
+      feather.replace();
+    }
+
+    $(document).ready(function(){
+      console.log("ready");
+      redraw_table();
+    })
+</script>          
+{% endblock %}
