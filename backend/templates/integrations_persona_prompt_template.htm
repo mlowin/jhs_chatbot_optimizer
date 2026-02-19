@@ -1,0 +1,20 @@
+{% extends 'template.htm' %}
+
+{% block h1_title %}Integration{% endblock %}
+
+{% block content %}
+<form method="post" action="/integrations/">
+    <h3>Generierate Personas</h3>
+  <p><label for="prompt">The system will now generate a couple of personas that act as synthetic customers. The personas will be used to generate hypothetic user queries in the next step.</label></p>
+    <p><textarea name="prompt" id="prompt" rows="10" cols="80"> Du bist ein Tool, was Personas für einen Online-Shop generiert, das selbst {{article_type}} anbietet. Die Personas sollen hypothetische Kunden sein.
+    Beschreibe die Persona kurz in einem Satz, Sprache ist deutsch, aber Sprachniveau soll sich unterscheiden, ebenfalls Branche, Mitarbeiterzahl, Anwendungszweck, Rolle im Unternehmen. 
+    Ebenso die Big 5 Personality inkludieren!
+    Du kannst nicht sprechen, antworte nur als valides JSON-Array mit einer Persona-Beschriebung pro Eintrag, das direkt geparst werden kann.</textarea></p>
+    <p><label for="persona_number">Anzahl an Personas zu generieren: </label><input type="number" value="50" name="persona_number" id="persona_number" /></p>
+
+  <p><br/></p>
+
+  <button>Create Personas</button>
+  </p>
+</form>
+{% endblock %}

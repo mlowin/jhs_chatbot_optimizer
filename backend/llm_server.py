@@ -5,18 +5,50 @@ import json
 import random
 import time
 import requests
+import os
+import importlib
+from datetime import datetime, timezone
+import string
+import random
+from event_queue import EventQueue
+from state_store import StateStore
+import callback
+from config import Config
+
+with open('llm_config.json') as config_file:
+    config = json.loads(config_file.read())
+
 
 client = OpenAI(
- base_url="http://10.10.0.20:7999/v1",
- api_key="token-ml-gpt-oss-2025",
-# base_url="http://10.10.0.20:8000/v1",
-# api_key="token-ml-llama3.1-2024",
+ base_url=config[0]["base_url"],
+ api_key=config[0]["model_token"]
 )
 
+
+def execute_callback(cb_name, trigger_uid):#, args, result):
+    module_name, class_name, method_name = cb_name.split(":")
+
+    # Modul laden (tasks/modulname.py)
+    module = importlib.import_module(f"tasks.{module_name}")
+
+    # Klasse holen
+    cls = getattr(module, class_name)
+
+    # Instanz erstellen
+    instance = cls()
+
+    # Methode holen (pre, do oder post)
+    method = getattr(instance, method_name)
+
+    # Methode ausführen
+    return method(trigger_uid)#result=result, **args)
+
+
 def invoke_llm(system, user,temperature=0):
+    if system is None: 
+        system = ''
     completion = client.chat.completions.create(
-        model="openai/gpt-oss-120b",
-        # model="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
+        model=config[0]["model_name"],
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user}
@@ -27,58 +59,82 @@ def invoke_llm(system, user,temperature=0):
 
     return output
 
-def get_current_item(llm_stack):
-    current_min = 0
-    current_lst = []
-    for uid in llm_stack:
-        stack_item = llm_stack[uid]
-        if stack_item['priority'] > current_min:
-            current_min = stack_item['priority']
-            current_lst = []
-        if current_min == stack_item['priority']:
-            current_lst.append(uid)
-
-    current_min = -1
-    current_min_uid = None
-
-    for uid in current_lst:
-        stack_item = llm_stack[uid]
-        if current_min == -1 or stack_item['current_item'] < current_min:
-            current_min = stack_item['current_item']
-            current_min_uid = uid
-    
-    return current_min_uid
-
-
 input_cache = dict()
 output_cache = dict()
 
+event_queue = EventQueue()
+print("RUN")
 while True:
-    with open('llm_stack.json', 'r') as f:
-        llm_stack = json.loads(f.read())
-    if len(llm_stack) > 0:
-        uid = get_current_item(llm_stack)
-        item = llm_stack[uid]
-        if uid not in input_cache:
-            with open('llm_inputs/'+uid+".json", 'r') as f:
-                input_cache[uid] = json.loads(f.read())
-                output_cache[uid] = []
-        result = invoke_llm(item['prompt'], input_cache[uid].pop(0))
-        output_cache[uid].append(result)
-        with open('llm_outputs/'+uid+".json", 'w') as f:
-            f.write(json.dumps(output_cache[uid]))
-        item['current_item'] += 1
+    if event_queue.size() > 0:
+        stack_item = event_queue.get_current_item()
+        print("working on",stack_item)        
 
-        if item['current_item'] == item['item_size']:
-            r = requests.get(item['endpoint'])
-            del input_cache[uid]
-            del output_cache[uid]
-            del llm_stack[uid]
-        else:
-            llm_stack[uid] = item
+        if stack_item['type'] == 'llm':
+            if stack_item['uid'] not in input_cache:
+                with open('llm_inputs/input_'+stack_item['uid']+".json", 'r') as f:
+                    input_cache[stack_item['uid']] = json.loads(f.read())
+                print("load from scratch",stack_item['current_item'])
+                if stack_item['current_item'] > 0:
+                    print("pop")
+                    input_cache[stack_item['uid']] = input_cache[stack_item['uid']][stack_item['current_item']:]
+                if os.path.exists('llm_outputs/output_'+stack_item['uid']+".json"):                
+                    with open('llm_outputs/output_'+stack_item['uid']+".json", 'r') as f:
+                        output_cache[stack_item['uid']] = json.loads(f.read())
+                else:
+                    output_cache[stack_item['uid']] = []
+            
+            user_message = input_cache[stack_item['uid']].pop(0)
+            print(user_message)
+            result = invoke_llm(stack_item['prompt'], user_message)
+            print("_____")
+            print(result)
+            
+            output_cache[stack_item['uid']].append(result)
+            with open('llm_outputs/output_'+stack_item['uid']+".json", 'w') as f:
+                f.write(json.dumps(output_cache[stack_item['uid']]))
+            stack_item['current_item'] += 1
+            
+        
+            if stack_item['current_item'] == stack_item['item_size']:
+                del input_cache[stack_item['uid']]
+                del output_cache[stack_item['uid']]
+                event_queue.delete(stack_item.doc_id)
+            else:
+                if 'alternate_weight' in stack_item:
+                    stack_item['alternate_weight'] += 1
+                event_queue.update(stack_item)
 
-        with open('llm_stack.json', 'w') as f:
-            f.write(json.dumps(llm_stack[uid]))        
+                
+            if 'callback' in stack_item and stack_item['current_item'] == stack_item['item_size']:
+                start_event = callback.StartEvent(stack_item['callback'],stack_item['uid'])
+                event_queue.push(start_event.get_event_queue_element())
+        
+        
+        else: # callback
+            state_store = StateStore()
+            state_store.set('integration_current_process',stack_item["callback"].split(":")[0])
+            state_store.set('integration_current_status','event')
+
+            response = execute_callback(
+                stack_item["callback"],
+                stack_item['trigger_uid']
+            )
+            print("set stack_item['trigger_uid']",stack_item)
+            state_store.set('integration_current_id',stack_item['trigger_uid'])
+            event_queue.delete(stack_item.doc_id)
+
+            if type(response) == callback.NextProcess:
+                state_store.set('integration_current_process',response.next_process)
+                state_store.set('integration_current_status','event')    
+                
+                response = execute_callback(
+                    response.next_process+":"+Config.PROCESS_FLOW[response.next_process]+":pre",
+                    stack_item['trigger_uid']
+                )
+                
+            
+
     else:
+        print("sleep")
         time.sleep(5)
         

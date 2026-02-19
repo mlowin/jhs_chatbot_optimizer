@@ -7,8 +7,8 @@ import requests
 
 from langchain_community.llms import VLLMOpenAI
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from markdown_pdf import MarkdownPdf, Section
 from langchain.globals import set_debug
+
 
 set_debug(True)
 
@@ -62,23 +62,32 @@ template = """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 <|start_header_id|>assistant<|end_header_id|><|end_of_text|>
 """
 
-rag_system_prompt = """Du bist ein Assistent zum Beantworten von Kundenanfragen zum Spielesortiment von WIIM.
-WIIM bietet Gesellschaftsspiele an und du kannst Produkte finden, die zur Kundenanfrage passen.
-Wenn du Artikel vorschlägst, verwende stets die Artikelnummer!
-Nutze zur Beantwortung der Fragen ggf. die folgende Kontextinformation:
+rag_system_prompt = """Du bist ein Assistent zum Finden geeigneter Startups aus dem KI-Bereich.
+In deiner Datenbank befinden sich rund 1000 Startups und Beschreibungen dazu. Schlage Startups vor, die zur Kundenanfrage passen.
+Gerne mehrere Startups, falls diese passen. Verlinke immer die Websites der Startups mit Markdown und schreibe, was die Startups machen.
+Nutze zur Beantwortung der Fragen ggf. die folgende Kontextinformation, die Teil einer RAG-Suche ist:
 {context}"""
 
 embedding = HuggingFaceEmbeddings(model_name='BAAI/bge-m3',model_kwargs={'device': 'cpu'})
 api_url = 'http://127.0.0.1:1338'
 persist_directory = './chroma'
+import sys, os
+sys.path.append(os.path.abspath("../backend"))
 
-chatbot = JHSChatbot(llm_retrieval, llm_generation, template, rag_system_prompt, embedding, persist_directory)
+from state_store import StateStore
+
+state_store = StateStore(path="../backend/state_store.json")
+model_path = "../backend/"+state_store.get("integration_finetuned_model")
+model_columns = state_store.get("integration_finetuned_variables")[1:]
+columns = state_store.get('integration_column_definition')
+title_column = [c["name"] for c in columns if c['column'] == 'title'][0]
+
+chatbot = JHSChatbot(llm_retrieval, llm_generation, template, rag_system_prompt, embedding, persist_directory, model_path, model_columns, title_column)
 
 
 from flask import Flask, render_template, request, send_from_directory, Response, stream_with_context, jsonify, request
 import json
 from flask_cors import CORS, cross_origin
-import matplotlib.pyplot as plt
 import datetime
 
 app = Flask(__name__)
@@ -88,10 +97,11 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 
 @app.route("/")
-def home():    
+def home():
     with open('../backend/system_config.json', 'r') as f:
         system_config = json.loads(f.read())
     return render_template("template.htm", logo_path = "WIIM_Logo.png", title=system_config['title'], accent_color=system_config['accent_color'])
+
 
 
 @app.route('/favicon.ico')
@@ -115,4 +125,4 @@ def stream_response():
     
 
 if __name__ == "__main__":
-  app.run(host='0.0.0.0', port=2338)
+  app.run(host='0.0.0.0', port=2339)

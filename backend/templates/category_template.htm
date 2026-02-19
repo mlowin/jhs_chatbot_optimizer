@@ -59,7 +59,7 @@
   <p><input type="button" class="btn btn-secondary" onclick="add_property()" value="Add Property" /></p>
   {% if in_process %}
   <p><input type="button" class="btn btn-primary" onclick="save_config()" value="Save and Continue" /></p>
-  <form method="post" action="/integrations_apply_filters/" id="json-form">
+  <form method="post" action="/integrations/" id="json-form">
     <input type="hidden" name="json" id="json"/>
   </form>
   {% endif %}

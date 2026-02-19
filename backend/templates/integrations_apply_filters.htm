@@ -1,0 +1,35 @@
+{% extends 'template.htm' %}
+
+{% block h1_title %}Integrations{% endblock %}
+
+{% block content %}
+
+<div class="loader">
+    <span id="current">-1</span> von <span id="total">-1</span>
+</div>
+ 
+{% endblock %}
+
+{% block javascript %}
+<script type="text/javascript">
+    var uid = "{{uid | safe}}";
+
+  
+    function get_status(){
+      $.get("/llm_status/?uid="+uid, function(data, status){
+            let obj = JSON.parse(data);
+            if(obj.length == 2){
+                $('#current').html(obj[0]);
+                $('#total').html(obj[1]);
+            }
+        });
+    }
+    
+    var interval = null;
+
+    $(document).ready(function(){
+        get_status();
+        interval = window.setInterval(get_status, 3000);
+    })
+</script>          
+{% endblock %}

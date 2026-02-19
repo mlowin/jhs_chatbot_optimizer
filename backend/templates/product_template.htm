@@ -43,6 +43,7 @@
 {% block javascript %}
 <script type="text/javascript">
     var products = {{products | safe}};
+    var file_config = {{file_config | safe}};
 
     function show_product(el){
       let product = products[el];
@@ -56,19 +57,43 @@
       $('#product-modal .modal-body form').html(html);      
       $('#product-modal').modal('show');
     }
+
+    function get_id(){
+      for(col in file_config){
+        if(file_config[col]['column'] == 'id'){
+          return file_config[col]['name'];
+        }
+      }
+      return false;
+    }
+
+    function get_title(){
+      for(col in file_config){
+        if(file_config[col]['column'] == 'title'){
+          return file_config[col]['name'];
+        }
+      }
+      return false;
+    }
     
     function redraw_table(){
       $('#table-products tbody').html('');
+
       for(let i in products){
         let product = products[i];
-        let html = '<tr><td>'+product['Artikelnummer']+"</td><td>"+product['Titel']+"</td>";
+        let html = '<tr><td>'+product[col_id]+"</td><td>"+product[col_title]+"</td>";
         html += '<td><span data-feather="shopping-cart" onclick="show_product('+i+')" style="cursor: pointer;"></span></td></tr>';
         $('#table-products tbody').append(html);
       }
       feather.replace();
     }
 
+    var col_id = false;
+    var col_title = false;
+
     $(document).ready(function(){
+      col_id = get_id();
+      col_title = get_title();
       redraw_table();
     })
 </script>          

@@ -53,7 +53,11 @@
       $('#question').html(chat['question']);
       $('#filters').html("<ul><li>"+chat['filters'].join("</li><li>")+"</li></ul>");
       $('#articles').html("<ul><li>"+chat['articles'].join("</li><li>")+"</li></ul>");
-      $('#history').html(chat['history']);      
+      let history = [];
+      for(let i in chat['chats']){
+        history.push(chat['chats'][i][0]+": "+chat['chats'][i][1])
+      }
+      $('#history').html("<ul><li>"+history.join("</li><li>")+"</li></ul>");      
       $('#chat-modal').modal('show');
     }
     

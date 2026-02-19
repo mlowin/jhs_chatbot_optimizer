@@ -6,7 +6,7 @@ The package requires Python 3.12. Please install the necessary packages using `p
 Please check config.json for basic configuration settings (e.g., http(s) ports).
 
 ## Achitecture
-The package uses a backend for administration and fine-tuning and a frontend (chatbot) for end users. Besides, it provides a Python library for a default LangChain chatbot implementation. To start the backend, run backend/server.py using Python CLI (not recommended) or a WSGI server. Browse the backend using the specified IP/Port in the config file. The setup process will guide you to the fine-tuning process.
+The package uses a backend for administration and fine-tuning and a frontend (chatbot) for end users. Besides, it provides a Python library for a default LangChain chatbot implementation. To start the backend, run backend/server.py using Python CLI (not recommended) or a WSGI server. Browse the backend using the specified IP/Port in the server.py file. The setup process will guide you to the fine-tuning process. Besides, you need to run the task handling service. Run llm_server.py in a second thread or a dedicated WSGI server.
 
 After setup, you can start the default frontend. Start it executing frontend/chat.py using Python CLI or a WSGI server.
 

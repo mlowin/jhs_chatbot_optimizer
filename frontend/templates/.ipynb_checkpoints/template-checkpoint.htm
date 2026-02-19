@@ -1,18 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{title}}</title>
+    <title>FI Chatbot</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}" />
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        body{
-            background: url('/static/{{logo_path}}') no-repeat;
-            background-size: 200px;
-            background-position-x: 20px;
-            background-position-y: 20px;
+        #extra{
+            display: none;
         }
         #chat_container{
             border-color: #A6001E;
@@ -28,22 +25,22 @@
         }
         .user .bubble{
             background-color: #800017;
-        }        
+        }
     </style>
 </head>
 <body>
 <div id="chat_container">
     <div id="chat_title">
-        <h1>{{title}}</h1>       
+        <h1>FI Chatbot</h1>
     </div>
     <div id="chat_content">
 
     </div>
     <div id="chat_input">
         <input id="user_text" type="text" name="user_text" placeholder="Geben Sie hier Ihre Frage ein" />
-        <input type="button" value="➤" title="Send" id="user_send" onclick="enterText()" />        
+        <input type="button" value="➤" title="Send" id="user_send" onclick="enterText()" />
         <div id="extra">
-            
+            <input type="checkbox" id="doku" value="1" name="doku" /><label for="doku">WIIM Doku mit einbeziehen</label>
         </div>
     </div>
 </div>

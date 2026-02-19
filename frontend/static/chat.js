@@ -162,6 +162,9 @@ var buffer = "";
 
 function parseMarkdown(text){
   html = marked.parse(text).replace(/\n\t[ ]?\*/g,"<br/> * ");
+  for(let i = 0; i < 15; i++){
+    html = html.replace('<a href','<a target="_blank" href');
+  }
   return html;
 }
 function enterResponse(text,stream=false){

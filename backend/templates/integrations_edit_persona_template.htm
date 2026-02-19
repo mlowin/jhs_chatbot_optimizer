@@ -1,0 +1,39 @@
+{% extends 'template.htm' %}
+
+{% block h1_title %}Created Persona{% endblock %}
+
+{% block content %}
+ <link href="/static/jsoneditor.min.css" rel="stylesheet" type="text/css">
+    <script src="/static/jsoneditor.min.js"></script>
+
+<div id="jsoneditor-container">
+  <div id="jsoneditor" style="width: 100%; height: 800px;"></div>  
+  
+    <p></p>  <form method="post" action="/integrations/" id="json-form">
+    <input type="hidden" name="json" id="json"/>
+  </form>
+  <p style="margin-top: 40px;"><input type="button" class="btn btn-primary" onclick="save_json()" value="Save and Continue" /></p>
+</div>
+
+{% endblock %}
+
+{% block javascript %}
+<script>
+    const container = document.getElementById("jsoneditor")
+    const options = {mode:'code'}
+    const editor = new JSONEditor(container, options)
+    var persona_list = {{persona_list | safe}};
+    
+    editor.set(persona_list);   
+
+    function save_json(){
+      persona_list = editor.get();
+      save_config();
+    }
+
+    function save_config(){
+        $('#json').val(JSON.stringify(persona_list));
+        $('#json-form').submit();         
+    }
+</script>          
+{% endblock %}

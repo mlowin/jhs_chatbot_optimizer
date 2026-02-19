@@ -1,0 +1,25 @@
+{% extends 'template.htm' %}
+
+{% block h1_title %}Integration{% endblock %}
+
+{% block content %}
+<form method="post" action="/integrations/">
+    <h3>Generierate User Queries</h3>
+  <p><label for="prompt">The system will now generate a couple of artificial user queries that act as synthetic customer questions. The user queries will be used to fine tune a custom transformer model to improve RAG quality.</label></p>
+    <p><textarea name="prompt" id="prompt" rows="10" cols="80">Du bist ein Tool, was Chatbotanfragen von potenziellen Kunden eines Online-Shops für {{article_type}} simuliert.
+Du bist ein Kunde, der ein passenden Artikel für sein Vorhaben aus seinem Unternehmen sucht. 
+Welche Frage könntest du den Chabot stellen, um ein geeignetes Produkt zu finden?
+Erfinde bspw. ein Szenario, für was das Produkt eingesetzt werden soll. 
+Nachfolgend erhältst du ein paar Produkte, als Insipration. 
+Die Anfrage sollte aber recht unabhängig von den Produkten sein. Ebenso bekommst du eine Persona-Beschreibung, deren Rolle du einnehmen sollst.
+Du selbst kannst nicht sprechen, antworte nur so, wie ein Kunde mit einem Chatbot interagieren würde. Nutze gerne Umgangssprache.</textarea></p>
+    <p><label for="articles_number">Anzahl an Artikel aus Datensatz pro Query: </label><input type="number" value="3" name="articles_number" id="articles_number" /></p>
+    <p><label for="user_query_number">Anzahl an zu generierenden User Queries: </label><input type="number" value="50" name="user_query_number" id="user_query_number" /></p>
+    <!--<p><label for="user_query_number_per_iteration">Anzahl an User Queries pro Iteration: </label><input type="number" value="50" name="user_query_number_per_iteration" id="user_query_number_per_iteration" /></p>-->
+
+  <p><br/></p>
+
+  <button>Create User Queries</button>
+  </p>
+</form>
+{% endblock %}

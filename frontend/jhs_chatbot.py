@@ -29,7 +29,7 @@ from langchain_community.document_loaders import PyPDFLoader
 import chromadb
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_core.runnables import RunnableLambda
-
+import numpy as np
 from langchain.globals import set_debug
 from torch.utils.data.dataset import Dataset
 from transformers import TrainingArguments, Trainer, AutoTokenizer, AutoModelForSequenceClassification
@@ -43,29 +43,25 @@ set_debug(True)
 
 class JHSChatbot(PlainChatbot):
     
-    def __init__(self, llm_retrieval, llm_generation, llm_template, llm_system_prompt, rag_embedding_model, rag_chroma_dir, rag_k = 3):
+    def __init__(self, llm_retrieval, llm_generation, llm_template, llm_system_prompt, rag_embedding_model, rag_chroma_dir, model_path, model_columns, title_column, rag_k = 3):
         self.llm_retrieval = llm_retrieval
         self.llm_generation = llm_generation
         self.rag_embedding_model = rag_embedding_model
         self.rag_chroma_dir = rag_chroma_dir
         self.rag_k = rag_k
+        self.title_column = title_column
         self.retriever = self.get_vectorstore().as_retriever(
             search_type = "similarity",
-            search_kwargs = {"k":self.rag_k}
+            search_kwargs = {"k":self.rag_k*3}
         )
+        self.model_columns = model_columns
 
-        with open('model_columns.json', 'r') as f:
-            self.model_columns = json.loads(f.read())
-        self.model = AutoModelForSequenceClassification.from_pretrained("bert-base-multilingual-uncased",
-                                                            num_labels=len(self.model_columns),
-                                                            output_attentions=False,
-                                                            output_hidden_states=False)
+
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
-        self.model.load_state_dict(torch.load('finetuned_BERT.model', map_location=torch.device(self.device)))
-
-        self.tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True)
 
 
         PlainChatbot.__init__(self, llm_retrieval, llm_template, llm_system_prompt)
@@ -75,39 +71,31 @@ class JHSChatbot(PlainChatbot):
         if os.path.isdir(self.rag_chroma_dir):
             vectorstore = Chroma(persist_directory=self.rag_chroma_dir, embedding_function=self.rag_embedding_model)
             print("load chroma from dir")
-        else:
-            print("create Chroma")
-            Chroma().delete_collection()    
-            
-            df = pd.read_csv('products_with_filter.csv')
-            df = df[~df.Beschreibung.isna()].fillna(0)
-
-            documents = (df["Titel"] + " - " + df["Beschreibung"]).tolist()
-
-            vectorstore = Chroma.from_texts(
-                texts=documents,
-                metadatas=df.to_dict("records"),  
-                embedding = self.rag_embedding_model,
-                persist_directory = self.rag_chroma_dir
-            )
-            
-            print("from documents ready")
-            #vectorstore.persist()
+        
            
         return vectorstore
 
 
     def format_docs(self, docs):
-        print("FORMAT",docs)
+        print("FORMAT")
         txt = "\n\n"
         for doc in docs:
-            print("doc",doc)
-            print(doc.metadata['Titel'])
-            txt += "Artikelnummer: {}\nArtikelbezeichnung: {}\nArtikelbeschreibung: {}\n\n".format(doc.metadata['Artikelnummer'],doc.metadata['Titel'],doc.metadata['Beschreibung'])
+            #print(doc.metadata['Titel'])
+            for col in doc.metadata:
+                txt += col+": "+str(doc.metadata[col])+"\n"
+            #txt += "Artikelnummer: {}\nArtikelbezeichnung: {}\nArtikelbeschreibung: {}\n\n".format(doc.metadata['Artikelnummer'],doc.metadata['Titel'],doc.metadata['Beschreibung'])
             
         return txt
 
-
+    def rag_score(self, items, set_rankers):
+        scores = []
+        for item in items:
+            score = 0
+            for cat in set_rankers:
+                if cat in item.metadata:
+                    score += 1
+            scores.append(score)
+        return scores
         
     def search_and_format(self, c):
         # get user
@@ -123,37 +111,38 @@ class JHSChatbot(PlainChatbot):
         logits = outputs.logits
         probabilities = torch.sigmoid(logits)  # Apply sigmoid to convert logits to probabilities
         i = 0
-        filters = {}
-        log_filters = []
+        set_rankers = {}
         for col in self.model_columns:
+            print(col, probabilities[0][i])
             if probabilities[0][i] > 0.5:
-                cat =  col.split('_')[0]
-                log_filters.append(col)
-                val =  '_'.join(col.split('_')[1:])
-                if cat in ['Komplexität', 'Thema','Spielmechanik', 'Sprache', 'Preisspanne', 'Empfehlungen', 'Kategorie', 'Artikelnummer',]:
-                    if cat not in filters:
-                        filters[cat] = []
-                    filters[cat].append({cat: val})
-                else:
-                    if cat not in filters:
-                        filters[cat] = []
-                    filters[cat].append({col: 1})
+                set_rankers[col] = 1
             i += 1
 
 
-        for filter in filters:
-            if len(filters[filter]) == 1:
-                filter_list.append(filters[filter][0])
-            else:
-                filter_list.append({"$or": filters[filter]}
-                                   )    
-            
         
 
         res = self.retriever.get_relevant_documents(
             c['question'],
-            filter={"$and":filter_list} if len(filter_list) > 0 else {}
+            #filter={"$and":filter_list} if len(filter_list) > 0 else {}
         )
+        scores = np.asarray(self.rag_score(res, set_rankers))
+        
+        log_filters = []
+        for cat in set_rankers:
+            log_filters.append(cat)
+
+        print("META")
+        print(res)
+        print(res[0].metadata)
+        print("RES")
+        print([doc.metadata[self.title_column] for doc in res])
+        print("SCORES", scores)
+        res_best = []
+        for index in scores.argsort()[-self.rag_k:][::-1]:
+            res_best.append(res[index])
+
+        res = res_best
+        print("final",[doc.metadata[self.title_column] for doc in res])
         with open("filters.json","w") as f:
             f.write(json.dumps({"$and":filter_list} if len(filter_list) > 0 else {}))
         # print("Die veränderte Frage lautet: ",c['question'])
@@ -161,7 +150,7 @@ class JHSChatbot(PlainChatbot):
         #     "k": self.rag_k,
         #     "filter": {"Kategorie": {"$in": ["Kartenspiele"]}}
         # })
-        log_numbers = [doc.metadata['Artikelnummer'] for doc in res]
+        log_numbers = [doc.metadata[self.title_column] for doc in res]
         log_time = datetime.now().replace(microsecond=0).isoformat()
 
         log_entry = {

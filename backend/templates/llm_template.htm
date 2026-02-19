@@ -63,13 +63,16 @@
     </table>
 </div>      
 <input type="button" class="btn btn-primary" onclick="add_llm()" value="Add LLM" />
- 
+<table id="llm_status">
+
+</table>
 {% endblock %}
 
 {% block javascript %}
 <script type="text/javascript">
     var open_llm = null;
     var llm_config = {{llm_config | safe}};
+    var llm_stack = {{llm_stack | safe}};
     function add_llm(){
       open_llm = null;
       $('#llm-modal').modal('show');
@@ -128,8 +131,33 @@
       });
     }
 
+    function refresh_status(){
+      for(let i in llm_stack){
+        (function(_uid){
+          $.get("/llm_status/?uid="+_uid, function(data, status){
+                let obj = JSON.parse(data);
+                if(obj.length == 2){
+                    $('#'+_uid+'_current').html(obj[0]);
+                    $('#'+_uid+'_total').html(obj[1]);
+                }
+                else{
+                  $('tr.'+_uid).remove();
+                }
+            }
+          );
+        })(llm_stack[i]['uid']);
+      }
+    }
+
     $(document).ready(function(){
       redraw_table();
+      for(let i in llm_stack){
+        let html = '<tr class="'+llm_stack[i]['uid']+'"><th style="width: 250px; height: 50px">'+llm_stack[i]['uid']+'</td><td><span id="'+llm_stack[i]['uid']+'_current">'+llm_stack[i]['current_item']+'</span> / <span id="'+llm_stack[i]['uid']+'_total">'+llm_stack[i]['item_size']+'</span></td></tr>';
+        $('#llm_status').append(html);
+      }
+      if(llm_stack.length > 0){
+        window.setInterval(refresh_status,3000);
+      }
     })
 </script>          
 {% endblock %}
