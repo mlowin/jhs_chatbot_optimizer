@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 import pandas as pd
 import numpy as np
 import json
@@ -14,6 +14,7 @@ from event_queue import EventQueue
 from state_store import StateStore
 import callback
 from config import Config
+import re
 
 with open('llm_config.json') as config_file:
     config = json.loads(config_file.read())
@@ -44,20 +45,37 @@ def execute_callback(cb_name, trigger_uid):#, args, result):
     return method(trigger_uid)#result=result, **args)
 
 
-def invoke_llm(system, user,temperature=0):
+def invoke_llm(system, user,temperature=0, num_retries = 0):
     if system is None: 
         system = ''
-    completion = client.chat.completions.create(
-        model=config[0]["model_name"],
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user}
-        ],
-        temperature=temperature
-    )
-    output = completion.choices[0].message.content
+    try:
+        completion = client.chat.completions.create(
+            model=config[0]["model_name"],
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user}
+            ],
+            temperature=temperature
+        )
+        output = completion.choices[0].message.content
+        output = re.sub(r"^```(?:json)?\s*|\s*```$", "", output.strip(), flags=re.DOTALL)
+        return output
+    
+    except RateLimitError as e:
+        error_message = str(e)
+        # Wartezeit aus Fehlermeldung extrahieren
+        match = re.search(r"try again in ([\d\.]+)s", error_message)
 
-    return output
+        if match:
+            wait_time = float(match.group(1))
+        else:
+            wait_time = 5  # Fallback
+
+        print(f"Rate limit erreicht. Warte {wait_time:.2f}s...")
+        time.sleep(wait_time)
+        return invoke_llm(system, user,temperature, num_retries +1)
+    
+
 
 input_cache = dict()
 output_cache = dict()
@@ -88,6 +106,12 @@ while True:
             result = invoke_llm(stack_item['prompt'], user_message)
             print("_____")
             print(result)
+            pattern = r"```json\s*(\{.*?\})\s*```"
+            match = re.search(pattern, result, re.DOTALL)
+
+            if match:
+                result = match.group(1)
+            print("?",match)
             
             output_cache[stack_item['uid']].append(result)
             with open('llm_outputs/output_'+stack_item['uid']+".json", 'w') as f:
