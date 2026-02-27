@@ -17,12 +17,23 @@ class SelectFile(JHSTask):
         self._state_store.set('select_file_message',None)
         return "show"
     
+    def has_backend(self, obj):
+        for llm in obj:
+            if llm['use_backend']:
+                return True
+        return False
+    
     def show(self):
         message = self._state_store.get('select_file_message')
         if os.path.exists('llm_config.json'):
             with open('llm_config.json', 'r') as f:
-                if len(json.loads(f.read())) > 0:
-                    return render_template("integrations_template.htm", message=message)
+                try:
+                    llms = json.loads(f.read())
+                except:
+                    llms = []
+                if len(llms) > 0:
+                    if self.has_backend(llms):
+                        return render_template("integrations_template.htm", message=message)
         return redirect('/llms/')
     
     

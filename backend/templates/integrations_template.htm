@@ -4,7 +4,7 @@
 
 {% block content %}
 <form method="post" enctype="multipart/form-data" action="/integrations/">
-  <label><p>Wählen Sie den Datensatz (*.xls, *.xlsx, *.csv oder *.json) von Ihrem Rechner aus.</p>
+  <label><p>Please select your dataset (*.xls, *.xlsx, *.csv oder *.json) from your computer.</p>
     <input name="file" type="file" size="50" accept=".csv,.xls,.xlsx,.json"> 
   </label>
   {% if message is not none %}
@@ -12,7 +12,7 @@
   {% endif %}
   <p>
 
-  <button>Hochladen und verarbeiten</button>
+  <button>Upload and process</button>
   </p>
 </form>
 {% endblock %}

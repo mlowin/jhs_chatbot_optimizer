@@ -80,12 +80,12 @@ h5{
 <div class="loading-card text-center">
 
 
-    <h4 id="taskTitle" class="mb-2">Daten werden verarbeitet</h4>
+    <h4 id="taskTitle" class="mb-2">Data is processed</h4>
     <h5 id="taskSubTitle" class="mb-2"></h5>
 
 
     <div class="counter mb-2">
-        <span id="done">...</span> von <span id="total">...</span> fertig
+        <span id="done">...</span> of <span id="total">...</span> completed
     </div>
 
     <div class="progress mb-4">
@@ -93,7 +93,7 @@ h5{
     </div>
 
     <small class="text-muted">
-        Dieser Vorgang kann einige Zeit dauern.
+        This process can take some time.
     </small>
 
 </div>
@@ -103,15 +103,15 @@ h5{
 <script type="text/javascript">    
     var uid = '{{task_id}}';
     var titles = {
-        "extract_columns":"Datensatz wird verarbeitet",
-        "create_vectordatabase_CreateVectordatabase_post":"Vektordatenbank wird aus Datensatz erstellt",
-        "extract_filters_articles":"Mögliche Filter werden aus Datensatz extrahiert",
-        "merge_extracted_filters_articles":"Extrahierte Filter werden verarbeitet",
-        "apply_filters_on_products":"Extrahierte Filter werden auf Produkte angewendet",
-        "create_persona":"Persona werden erstellt",
-        "create_user_queries":"Synthetische Nutzeranfragen werden generiert",
-        "apply_filters_on_user_queries":"Extrahierte Filter werden auf synthetische Nutzeranfragen angewendet",
-        "fine_tune_model_FineTuneModel_post":"Fine-Tuning des Extraktionsmodells"
+        "extract_columns":"Processing dataset",
+        "create_vectordatabase_CreateVectordatabase_post":"Creating vector database from dataset",
+        "extract_filters_articles":"Extraction potential filters from dataset",
+        "merge_extracted_filters_articles":"Processing exctracted filters",
+        "apply_filters_on_products":"Applying extracted filters on products",
+        "create_persona":"Creating persona",
+        "create_user_queries":"Generating synthetic user queries",
+        "apply_filters_on_user_queries":"Applying extracted filters on user queries",
+        "fine_tune_model_FineTuneModel_post":"Fine tuning of extraction model"
     };
 
     function find_title(title){

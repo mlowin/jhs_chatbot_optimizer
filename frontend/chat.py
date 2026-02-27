@@ -32,29 +32,53 @@ class QueueStreamingHandler(BaseCallbackHandler):
     def on_llm_end(self, *args, **kwargs) -> None:
         self.queue.put(None)  # Signal für "Ende"
 
-llm_retrieval = VLLMOpenAI(
-    model_name="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
-    base_url="http://10.10.0.20:8000/v1",
-    api_key="token-ml-llama3.1-2024",
+
+
+with open('../backend/llm_config.json') as config_file:
+    config = []
+    for llm in json.loads(config_file.read()):
+        if llm['use_frontend']:
+            config.append(llm)
+
+if len(config) == 0:
+    print("No LLM found, cannot start chat server")
+    raise Exception("No frontend LLM found. Please specify one in the llm_config.json")
+
+os.environ["OPENAI_API_KEY"] = config[0]["model_token"]
+
+from langchain_community.chat_models import ChatOpenAI
+
+
+
+llm_retrieval = ChatOpenAI(
+    model_name=config[0]["model_name"],
+    base_url=config[0]["base_url"],
+    api_key=config[0]["model_token"],
     verbose=True,
     temperature=0,
-    frequency_penalty=0.5,
-    top_p=0.95,
+    model_kwargs={
+        "frequency_penalty":0.5,
+        "top_p":0.95
+    },
     max_tokens=4096,
     streaming=False
 )
 
-llm_generation = VLLMOpenAI(    
-    model_name="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
-    base_url="http://10.10.0.20:8000/v1",
-    api_key="token-ml-llama3.1-2024",
+llm_generation = ChatOpenAI(    
+    model_name=config[0]["model_name"],
+    base_url=config[0]["base_url"],
+    api_key=config[0]["model_token"],
     verbose=True,
     temperature=0,
-    frequency_penalty=0.5,
-    top_p=0.95,
+    model_kwargs={
+        "frequency_penalty":0.5,
+        "top_p":0.95
+    },
     max_tokens=4096,
     streaming=True
 )
+
+
 
 template = """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 {system_prompt}<|eot_id|>
@@ -64,12 +88,11 @@ template = """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
 rag_system_prompt = """Du bist ein Assistent zum Finden geeigneter Startups aus dem KI-Bereich.
 In deiner Datenbank befinden sich rund 1000 Startups und Beschreibungen dazu. Schlage Startups vor, die zur Kundenanfrage passen.
-Gerne mehrere Startups, falls diese passen. Verlinke immer die Websites der Startups mit Markdown und schreibe, was die Startups machen.
+Gerne mehrere Startups, falls diese passen. Verlinke immer die Websites der Startups mit Markdown und gebe eine kurze Beschreibung mit, was die Startups machen.
 Nutze zur Beantwortung der Fragen ggf. die folgende Kontextinformation, die Teil einer RAG-Suche ist:
 {context}"""
 
 embedding = HuggingFaceEmbeddings(model_name='BAAI/bge-m3',model_kwargs={'device': 'cpu'})
-api_url = 'http://127.0.0.1:1338'
 persist_directory = './chroma'
 import sys, os
 sys.path.append(os.path.abspath("../backend"))

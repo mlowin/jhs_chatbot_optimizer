@@ -56,15 +56,18 @@ class CreateVectordatabase(JHSTask):
          
         persist_directory = '../frontend/chroma'
 
+
         import shutil
 
         try:
             shutil.rmtree(persist_directory)
         except:
             print("No previous Chroma version")
-        
-        os.mkdir(persist_directory)
-        os.chmod(persist_directory, 0o755) 
+        print("Persist dir:", persist_directory)
+        print("Absolute path:", os.path.abspath(persist_directory))
+        print("Exists:", os.path.exists(persist_directory))
+        # os.mkdir(persist_directory)
+        # os.chmod(persist_directory, 0o755) 
         embedding = HuggingFaceEmbeddings(model_name='BAAI/bge-m3',model_kwargs={'device': 'cpu'})
         meta = df.to_dict("records")
 

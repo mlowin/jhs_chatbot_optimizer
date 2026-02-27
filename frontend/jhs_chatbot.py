@@ -16,7 +16,6 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 import json
 import xml.etree.ElementTree as ET
-from openai import OpenAI
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage

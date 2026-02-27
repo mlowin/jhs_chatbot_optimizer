@@ -3,6 +3,11 @@
 {% block h1_title %}LLMs{% endblock %}
 
 {% block content %}
+<style>
+input[type=checkbox].form-check-input {
+  margin-left: 0;
+}
+</style>
 <div class="modal fade" id="llm-modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -38,6 +43,18 @@
                 <input type="text" class="form-control" id="model_token" value="">
                 </div>
             </div>
+            <div class="form-group row">
+                <label for="model_token" class="col-sm-2 col-form-label">Use for backend tasks</label>
+                <div class="col-sm-10">
+                <input type="checkbox"  class="form-check-input" id="use_backend" value="1">
+                </div>
+            </div>
+            <div class="form-group row">
+                <label for="model_token" class="col-sm-2 col-form-label">Use for frontend tasks</label>
+                <div class="col-sm-10">
+                <input type="checkbox" class="form-check-input" id="use_frontend" value="1">
+                </div>
+            </div>
             
         </form>
       </div>
@@ -56,6 +73,7 @@
                 <th>Type</th>
                 <th>Model</th>
                 <th></th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -73,6 +91,7 @@
     var open_llm = null;
     var llm_config = {{llm_config | safe}};
     var llm_stack = {{llm_stack | safe}};
+
     function add_llm(){
       open_llm = null;
       $('#llm-modal').modal('show');
@@ -83,6 +102,9 @@
       $('#model_name').val(llm['model_name']);
       $('#base_url').val(llm['base_url']);
       $('#model_token').val(llm['model_token']);
+      $('#use_frontend').prop('checked',llm['use_frontend']);
+      $('#use_backend').prop('checked',llm['use_backend']);
+
       open_llm = el;
       $('#llm-modal').modal('show');
     }
@@ -91,7 +113,19 @@
         "model_title": $('#model_title').val(),
         "model_name": $('#model_name').val(),
         "base_url": $('#base_url').val(),
-        "model_token": $('#model_token').val()
+        "model_token": $('#model_token').val(),
+        "use_frontend": $('#use_frontend').is(':checked'),
+        "use_backend": $('#use_backend').is(':checked'),
+      }
+      if($('#use_frontend').is(':checked')){
+        for(let i in llm_config){
+          llm_config[i]['use_frontend'] = false;
+        }
+      }
+      if($('#use_backend').is(':checked')){
+        for(let i in llm_config){
+          llm_config[i]['use_backend'] = false;
+        }
       }
       if(open_llm == null){ // add
         llm_config.push(llm_item);
@@ -106,6 +140,9 @@
       $('#model_name').val("");
       $('#base_url').val("");
       $('#model_token').val("");
+      $('#use_frontend').prop('checked',false);
+      $('#use_backend').prop('checked',false);
+
 
     }
 
@@ -114,7 +151,13 @@
       for(let i in llm_config){
         let llm = llm_config[i];
         let llm_html = '<tr><td>'+llm['model_title']+"</td><td>External</td><td>"+llm['model_name']+"</td>";
-        llm_html += '<td><span data-feather="edit-2" onclick="edit_llm('+i+')" style="cursor: pointer;"></span></td></tr>';
+        let be = [];
+        if(llm['use_frontend'])
+          be.push("Frontend")
+        if(llm['use_backend'])
+          be.push("Backend")
+        be = be.join(", ");
+        llm_html += '<td><span data-feather="edit-2" onclick="edit_llm('+i+')" style="cursor: pointer;"></span></td><td>'+be+'</td></tr>';
         $('#table-llm tbody').append(llm_html);
       }
       feather.replace();

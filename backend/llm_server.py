@@ -17,7 +17,12 @@ from config import Config
 import re
 
 with open('llm_config.json') as config_file:
-    config = json.loads(config_file.read())
+    config = []
+    for llm in json.loads(config_file.read()):
+        if llm['use_backend']:
+            config.append(llm)
+    
+
 
 
 client = OpenAI(
